@@ -13,7 +13,7 @@
 static int bmp888_to_argb1555(uint8_t *in_buf, ssize_t in_len, uint16_t **out_buf)
 {
     uint32_t data_offset, image_width, image_height;
-    ssize_t i, data_count;
+    ssize_t i, j, data_count;
     uint8_t R, G, B;
     uint16_t argb1555_color;
 
@@ -31,17 +31,20 @@ static int bmp888_to_argb1555(uint8_t *in_buf, ssize_t in_len, uint16_t **out_bu
 
     *out_buf = (uint16_t *)malloc(sizeof(uint16_t) * data_count);
 
-    for (i = 0; i < data_count; i++)
+    for (i = 0; i < image_height; i++)
     {
-        memcpy(&B, in_buf + data_offset + i * 3, sizeof(uint8_t));
-        memcpy(&G, in_buf + data_offset + i * 3 + 1, sizeof(uint8_t));
-        memcpy(&R, in_buf + data_offset + i * 3 + 2, sizeof(uint8_t));
-        R = (R >> 3) & 0x1F;
-        G = (G >> 3) & 0x1F;
-        B = (B >> 3) & 0x1F;
+        for (j = 0; j < image_width; j++)
+        {
+            memcpy(&B, in_buf + data_offset + (i * image_width + j) * 3, sizeof(uint8_t));
+            memcpy(&G, in_buf + data_offset + (i * image_width + j) * 3 + 1, sizeof(uint8_t));
+            memcpy(&R, in_buf + data_offset + (i * image_width + j) * 3 + 2, sizeof(uint8_t));
+            R = (R >> 3) & 0x1F;
+            G = (G >> 3) & 0x1F;
+            B = (B >> 3) & 0x1F;
 
-        argb1555_color = (R << 10) | (G << 5) | B | 0x8000;
-        memcpy((*out_buf) + data_count - i - 1, &argb1555_color, sizeof(uint16_t));
+            argb1555_color = (R << 10) | (G << 5) | B | 0x8000;
+            memcpy((*out_buf) + (image_height - 1 - i) * image_width + j, &argb1555_color, sizeof(uint16_t));
+        }
     }
 
     return data_count;
