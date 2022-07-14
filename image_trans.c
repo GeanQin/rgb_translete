@@ -1,16 +1,15 @@
-#include <stdio.h>
-#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "image_trans.h"
 
 #define BMP_DATA_OFF_VAL_ADDR 10
 #define BMP_IMG_W_ADDR 18
 #define BMP_IMG_H_ADDR 22
 #define BMP_HEAD_LEN 54
 
-static int bmp888_to_argb1555(uint8_t *in_buf, ssize_t in_len, uint16_t **out_buf)
+int bmp888_to_argb1555(uint8_t *in_buf, ssize_t in_len, uint16_t **out_buf)
 {
     uint32_t data_offset, image_width, image_height;
     ssize_t i, j, data_count;
@@ -50,7 +49,69 @@ static int bmp888_to_argb1555(uint8_t *in_buf, ssize_t in_len, uint16_t **out_bu
     return data_count;
 }
 
-static ssize_t get_file_content(char *file_name, uint8_t **out_buf)
+int bmp888_to_argb1111(uint8_t *in_buf, ssize_t in_len, uint8_t **out_buf)
+{
+    uint32_t data_offset, image_width, image_height;
+    ssize_t i, j, data_count;
+    uint8_t R, G, B;
+    uint8_t argb1111_color = 0;
+
+    if (in_len < BMP_HEAD_LEN)
+    {
+        fprintf(stderr, "BMP data is invaild!");
+        return -1;
+    }
+
+    memcpy(&data_offset, in_buf + BMP_DATA_OFF_VAL_ADDR, sizeof(uint32_t));
+    memcpy(&image_width, in_buf + BMP_IMG_W_ADDR, sizeof(uint32_t));
+    memcpy(&image_height, in_buf + BMP_IMG_H_ADDR, sizeof(uint32_t));
+
+    data_count = image_width * image_height / 2;
+
+    *out_buf = (uint8_t *)malloc(sizeof(uint8_t) * data_count);
+
+    for (i = 0; i < image_height; i++)
+    {
+        for (j = 0; j < image_width; j++)
+        {
+            memcpy(&B, in_buf + data_offset + (i * image_width + j) * 3, sizeof(uint8_t));
+            memcpy(&G, in_buf + data_offset + (i * image_width + j) * 3 + 1, sizeof(uint8_t));
+            memcpy(&R, in_buf + data_offset + (i * image_width + j) * 3 + 2, sizeof(uint8_t));
+            R = (R >> 7) & 0x01;
+            G = (G >> 7) & 0x01;
+            B = (B >> 7) & 0x01;
+
+            if (j % 2 == 0)
+            {
+                if (R == 0 && G == 0 && B == 0)
+                {
+                    argb1111_color = 0x0C;
+                }
+                else
+                {
+                    argb1111_color = (R << 2) | (G << 1) | B;
+                }
+            }
+            else
+            {
+                if (R == 0 && G == 0 && B == 0)
+                {
+                    argb1111_color = argb1111_color | 0xC0;
+                }
+                else
+                {
+                    argb1111_color = argb1111_color | ((R << 6) | (G << 5) | (B << 4));
+                }
+
+                memcpy((*out_buf) + (image_height - 1 - i) * image_width / 2 + j / 2, &argb1111_color, sizeof(uint8_t));
+            }
+        }
+    }
+
+    return data_count;
+}
+
+ssize_t get_file_content(char *file_name, uint8_t **out_buf)
 {
     int fd;
     size_t file_size;
@@ -78,7 +139,7 @@ static ssize_t get_file_content(char *file_name, uint8_t **out_buf)
     return read_size;
 }
 
-static void destroy_file_content(uint8_t *buf)
+void destroy_file_content(uint8_t *buf)
 {
     if (buf)
     {
@@ -86,7 +147,7 @@ static void destroy_file_content(uint8_t *buf)
     }
 }
 
-static void destroy_argb1555_content(uint16_t *buf)
+void destroy_argb1555_content(uint16_t *buf)
 {
     if (buf)
     {
@@ -94,47 +155,10 @@ static void destroy_argb1555_content(uint16_t *buf)
     }
 }
 
-static ssize_t write_to_file(char *file_name, uint16_t *buf, ssize_t len)
+void destroy_argb1111_content(uint8_t *buf)
 {
-    FILE *fp = NULL;
-    size_t write_size;
-
-    fp = fopen(file_name, "w");
-    if (fp == NULL)
+    if (buf)
     {
-        fprintf(stderr, "Cannot open %s!\n", file_name);
-        return -1;
+        free(buf);
     }
-
-    write_size = fwrite(buf, sizeof(uint16_t), len, fp);
-
-    fclose(fp);
-    return write_size;
-}
-
-int main(int argc, char *argv[])
-{
-    ssize_t read_size, argb1555_size;
-    uint8_t *read_buf = NULL;
-    uint16_t *argb1555_buf = NULL;
-    size_t write_size;
-
-    if (argc < 3)
-    {
-        fprintf(stderr, "please add param!\n bmp888_to_argb1555 in out\n");
-        return 0;
-    }
-
-    printf("Start read %s\n", argv[1]);
-    read_size = get_file_content(argv[1], &read_buf);
-    printf("read %lu/B\n", read_size);
-
-    argb1555_size = bmp888_to_argb1555(read_buf, read_size, &argb1555_buf);
-
-    write_size = write_to_file(argv[2], argb1555_buf, argb1555_size);
-    printf("write to %s (%ld)\n", argv[2], write_size * 2);
-
-    destroy_file_content(read_buf);
-    destroy_argb1555_content(argb1555_buf);
-    return 0;
 }
