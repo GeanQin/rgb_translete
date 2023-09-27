@@ -1,61 +1,49 @@
-#include <string.h>
-#include "image_trans.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-static ssize_t write_to_file(char *file_name, uint8_t *buf, ssize_t len)
-{
-    FILE *fp = NULL;
-    size_t write_size;
-
-    fp = fopen(file_name, "w");
-    if (fp == NULL)
-    {
-        fprintf(stderr, "Cannot open %s!\n", file_name);
-        return -1;
-    }
-
-    write_size = fwrite(buf, sizeof(uint8_t), len, fp);
-
-    fclose(fp);
-    return write_size;
-}
+#include "bmp_trans.h"
 
 int main(int argc, char *argv[])
 {
-    ssize_t read_size, rgb_size;
-    uint8_t *read_buf = NULL;
-    uint16_t *argb1555_buf = NULL;
-    uint8_t *argb1111_buf = NULL;
-    size_t write_size;
+    bitmap_file_info_t bitmap_file;
+    bitmap_image_info_t bitmap_image;
+    unsigned char *bitmap_buf = NULL;
+    uint16_t *argb1555 = NULL;
+    uint8_t *argb1111 = NULL;
+    int w, h = 0;
 
-    if (argc < 3)
-    {
-        fprintf(stderr, "Please add param!\n bmp888_to_argb [format] [in] [out]\n");
-        return 0;
-    }
+    // bitmap_buf = bitmap_file_read("/share_data/bmp/hjq_640x360.bmp", &bitmap_file, &bitmap_image);
+    bitmap_buf = bitmap_file_read("images/mijia/mijia_480p.bmp", &bitmap_file, &bitmap_image);
+    printf("file type=%s size=%u reserved=%u offset=%u\n", bitmap_file.bfType, bitmap_file.bfSize, bitmap_file.bfReserved, bitmap_file.bfOffBits);
+    printf("bitmap size=%u w=%u h=%u plane=%hu bitcount=%hu\n",
+           bitmap_image.biSize, bitmap_image.biWidth, bitmap_image.biHeight, bitmap_image.biPlanes, bitmap_image.biBitCount);
+    printf("bitmap compression=%u size image=%u x=%u y=%u color=%u import=%u\n",
+           bitmap_image.biCompression, bitmap_image.biSizeImage, bitmap_image.biXPelsPerMeter, bitmap_image.biYPelsPerMeter, bitmap_image.biClrUsed, bitmap_image.biClrImportant);
+    printf("bitmap_buf=%p\n", bitmap_buf);
 
-    printf("Start read %s, ", argv[2]);
-    read_size = get_file_content(argv[2], &read_buf);
-    printf("read %lu/B\n", read_size);
+    argb1555 = rgb888_to_argb1555(bitmap_buf, bitmap_image.biSizeImage, bitmap_image.biWidth, bitmap_image.biHeight);
+#if 0   // 不知道为啥不能显示argb1111，bmp不支持？看了一下PS最小也是16位，不纠结了
+    argb1111 = rgb888_to_argb1111(bitmap_buf, bitmap_image.biSizeImage, bitmap_image.biWidth, bitmap_image.biHeight);
+    bitmap_file.bfSize = bitmap_file.bfOffBits + bitmap_image.biWidth * bitmap_image.biHeight / 2 + 2;
+    bitmap_image.biBitCount = 4;
+    bitmap_image.biSizeImage = bitmap_image.biWidth * bitmap_image.biHeight / 2 + 2;
+    bitmap_file_write("test1111.bmp", bitmap_file, bitmap_image, (uint8_t *)argb1111);
+#endif
+    bitmap_file.bfSize = bitmap_file.bfOffBits + bitmap_image.biWidth * bitmap_image.biHeight * 2 + 2;
+    bitmap_image.biBitCount = 16;
+    bitmap_image.biSizeImage = bitmap_image.biWidth * bitmap_image.biHeight * 2 + 2;
+    bitmap_file_write("test1555.bmp", bitmap_file, bitmap_image, (uint8_t *)argb1555);
+    free(bitmap_buf);
+    free(argb1555);
 
-    if (!strcmp("1111", argv[1]))
-    {
-        rgb_size = bmp888_to_argb1111(read_buf, read_size, &argb1111_buf);
-        write_size = write_to_file(argv[3], argb1111_buf, rgb_size);
-        destroy_argb1111_content(argb1111_buf);
-    }
-    else if (!strcmp("1555", argv[1]))
-    {
-        rgb_size = bmp888_to_argb1555(read_buf, read_size, &argb1555_buf);
-        write_size = write_to_file(argv[3], (uint8_t *)argb1555_buf, rgb_size * 2);
-        destroy_argb1555_content(argb1555_buf);
-    }
-    else
-    {
-        fprintf(stderr, "Do not support format [%s]\n", argv[1]);
-        return 0;
-    }
+    argb1555 = string_to_argb1555("default.ttf", "2023-9-27 11:09:00", 64, &w, &h);
+    bitmap_file.bfSize = bitmap_file.bfOffBits + w * h * 2 + 2;
+    bitmap_image.biBitCount = 16;
+    bitmap_image.biWidth = w;
+    bitmap_image.biHeight = h;
+    bitmap_image.biSizeImage = w * h * 2 + 2;
+    bitmap_file_write("teststr1555.bmp", bitmap_file, bitmap_image, (uint8_t *)argb1555);
+    free(argb1555);
 
-    printf("write to %s (%ld)\n", argv[3], write_size);
-    destroy_file_content(read_buf);
     return 0;
 }

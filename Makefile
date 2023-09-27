@@ -1,5 +1,5 @@
 all:
-	gcc image_trans.c main.c -o bmp888_to_argb
+	gcc bmp_trans.c main.c -o bmp_trans -lm
 
 clean:
-	rm -rf bmp888_to_argb
+	rm -rf bmp_trans test*.bmp
