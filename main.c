@@ -11,6 +11,8 @@ int main(int argc, char *argv[])
     uint16_t *argb1555 = NULL;
     uint8_t *argb1111 = NULL;
     int w, h = 0;
+    FILE *str_fp = NULL;
+    char str_buf[1024] = {0};
 
     // bitmap_buf = bitmap_file_read("/share_data/bmp/hjq_640x360.bmp", &bitmap_file, &bitmap_image);
     bitmap_buf = bitmap_file_read("images/mijia/mijia_480p.bmp", &bitmap_file, &bitmap_image);
@@ -36,7 +38,16 @@ int main(int argc, char *argv[])
     free(bitmap_buf);
     free(argb1555);
 
-    argb1555 = string_to_argb1555("default.ttf", "2023-9-27 11:09:00", 64, &w, &h);
+    str_fp = fopen("str.txt", "r");
+    if (str_fp == NULL)
+    {
+        printf("cannot read str.txt");
+        return -1;
+    }
+    fread(str_buf, 1, sizeof(str_buf), str_fp);
+    fclose(str_fp);
+
+    argb1555 = string_to_argb1555("default.ttf", str_buf, 64, &w, &h);
     bitmap_file.bfSize = bitmap_file.bfOffBits + w * h * 2 + 2;
     bitmap_image.biBitCount = 16;
     bitmap_image.biWidth = w;

@@ -2872,7 +2872,7 @@ stbtt_BakeFontBitmap1(const unsigned char *data, size_t length, int offset, // f
             } 
 			else if(str[i] == '-') 
 			{
-                  y = 24;
+                  y = 30;
             } 
 			else 
 			{
@@ -3174,7 +3174,7 @@ stbtt_BakeFontBitmap1(const unsigned char *data, size_t length, int offset, // f
             } else if (str[i] == '/' ){
                   x  = x + 16+3;
             } else if (str[i] == '-' ){
-                  x  = x + 18+3;
+                  x  = x + 35;
             } else if (str[i] == ':') {
                x  = x + 12+3;
 			} else if (str[i] == ' ') {
@@ -3182,6 +3182,11 @@ stbtt_BakeFontBitmap1(const unsigned char *data, size_t length, int offset, // f
             } else {
                x  = x + 33;
             }
+			// 中文
+			if (str[i] > 122)
+			{
+				x = x + 20;
+			}
       }
   	  else if(ph == 72)
 	  {

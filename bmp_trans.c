@@ -27,7 +27,7 @@ static void get_string_bmp_size(uint32_t font_size, uint32_t *w, uint32_t *h)
     }
     else if (font_size == 64)
     {
-        *w = 552;
+        *w = 640;
         *h = 64;
     }
     else if (font_size == 20)
@@ -299,7 +299,7 @@ uint16_t *string_to_argb1555(char *ttf_path, char *str, uint32_t font_size, uint
 
     get_string_bmp_size(font_size, w, h);
 
-    bitmap = (uint8_t *)malloc((*w) * (*h));
+    bitmap = (uint8_t *)malloc((*w) * (*h) * 2);
     if (bitmap == NULL)
     {
         free(ttf_buf);
@@ -309,6 +309,7 @@ uint16_t *string_to_argb1555(char *ttf_path, char *str, uint32_t font_size, uint
     ret = stbtt_BakeFontBitmap1(ttf_buf, ttf_size, 0, font_size, bitmap, *w, *h, str);
     if (ret < 0)
     {
+        fprintf(stderr, "stbtt_BakeFontBitmap1 err\n");
         free(bitmap);
         free(ttf_buf);
         return NULL;
