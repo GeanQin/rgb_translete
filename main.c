@@ -1,60 +1,97 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "bmp_trans.h"
+#include "bmp_common.h"
+#include "rgb_trans.h"
+#include "rgb_fusion.h"
+
+void print_usage(char* cmd)
+{
+    printf("Usage:\n\t%s [print, trans, fusion] ...\n", cmd);
+    printf("Such as:\n\t%s print test.bmp\n", cmd);
+    printf("\t%s trans test.bmp 1555\n", cmd);
+    printf("\t%s trans \"123一二三\" 16 1555\n", cmd);
+    printf("\t%s fusion bg.bmp source.bmp\n", cmd);
+}
 
 int main(int argc, char *argv[])
 {
-    bitmap_file_info_t bitmap_file;
-    bitmap_image_info_t bitmap_image;
-    unsigned char *bitmap_buf = NULL;
-    uint16_t *argb1555 = NULL;
-    uint8_t *argb1111 = NULL;
-    int w, h = 0;
-    FILE *str_fp = NULL;
-    char str_buf[1024] = {0};
+    unsigned char *bmp_buf = NULL;
+    bitmap_file_info_t bmp_file;
+    bitmap_image_info_t bmp_image;
 
-    // bitmap_buf = bitmap_file_read("/share_data/bmp/hjq_640x360.bmp", &bitmap_file, &bitmap_image);
-    bitmap_buf = bitmap_file_read("images/mijia/mijia_480p.bmp", &bitmap_file, &bitmap_image);
-    printf("file type=%s size=%u reserved=%u offset=%u\n", bitmap_file.bfType, bitmap_file.bfSize, bitmap_file.bfReserved, bitmap_file.bfOffBits);
-    printf("bitmap size=%u w=%u h=%u plane=%hu bitcount=%hu\n",
-           bitmap_image.biSize, bitmap_image.biWidth, bitmap_image.biHeight, bitmap_image.biPlanes, bitmap_image.biBitCount);
-    printf("bitmap compression=%u size image=%u x=%u y=%u color=%u import=%u\n",
-           bitmap_image.biCompression, bitmap_image.biSizeImage, bitmap_image.biXPelsPerMeter, bitmap_image.biYPelsPerMeter, bitmap_image.biClrUsed, bitmap_image.biClrImportant);
-    printf("bitmap_buf=%p\n", bitmap_buf);
-
-    argb1555 = rgb888_to_argb1555(bitmap_buf, bitmap_image.biSizeImage, bitmap_image.biWidth, bitmap_image.biHeight);
-#if 0   // 不知道为啥不能显示argb1111，bmp不支持？看了一下PS最小也是16位，不纠结了
-    argb1111 = rgb888_to_argb1111(bitmap_buf, bitmap_image.biSizeImage, bitmap_image.biWidth, bitmap_image.biHeight);
-    bitmap_file.bfSize = bitmap_file.bfOffBits + bitmap_image.biWidth * bitmap_image.biHeight / 2 + 2;
-    bitmap_image.biBitCount = 4;
-    bitmap_image.biSizeImage = bitmap_image.biWidth * bitmap_image.biHeight / 2 + 2;
-    bitmap_file_write("test1111.bmp", bitmap_file, bitmap_image, (uint8_t *)argb1111);
-#endif
-    bitmap_file.bfSize = bitmap_file.bfOffBits + bitmap_image.biWidth * bitmap_image.biHeight * 2 + 2;
-    bitmap_image.biBitCount = 16;
-    bitmap_image.biSizeImage = bitmap_image.biWidth * bitmap_image.biHeight * 2 + 2;
-    bitmap_file_write("test1555.bmp", bitmap_file, bitmap_image, (uint8_t *)argb1555);
-    free(bitmap_buf);
-    free(argb1555);
-
-    str_fp = fopen("str.txt", "r");
-    if (str_fp == NULL)
+    if (argc < 2)
     {
-        printf("cannot read str.txt");
-        return -1;
+        print_usage(argv[0]);
+        exit(-1);
     }
-    fread(str_buf, 1, sizeof(str_buf), str_fp);
-    fclose(str_fp);
 
-    argb1555 = string_to_argb1555("default.ttf", str_buf, 64, &w, &h);
-    bitmap_file.bfSize = bitmap_file.bfOffBits + w * h * 2 + 2;
-    bitmap_image.biBitCount = 16;
-    bitmap_image.biWidth = w;
-    bitmap_image.biHeight = h;
-    bitmap_image.biSizeImage = w * h * 2 + 2;
-    bitmap_file_write("teststr1555.bmp", bitmap_file, bitmap_image, (uint8_t *)argb1555);
-    free(argb1555);
+    if (strncmp("print", argv[1], strlen(argv[1])) == 0)
+    {
+        bmp_buf = bitmap_file_read(argv[2], &bmp_file, &bmp_image);
+        bitmap_print_head(&bmp_file, &bmp_image, bmp_buf);
+    }
+    else if (strncmp("trans", argv[1], strlen(argv[1])) == 0)
+    {
+        if (strncmp(".bmp", argv[2] + strlen(argv[2]) - 4, 4) == 0)
+        {
+            bmp_buf = bitmap_file_read(argv[2], &bmp_file, &bmp_image);
+            if (bmp_image.biBitCount == 24 && strncmp("1555", argv[3], strlen(argv[3])) == 0)
+            {
+                uint16_t *argb1555 = rgb888_to_argb1555(bmp_buf, bmp_image.biSizeImage, bmp_image.biWidth, bmp_image.biHeight);
+                bmp_image.biBitCount = 16;
+                bmp_image.biSizeImage = bmp_image.biWidth * bmp_image.biHeight * 2;
+                bmp_file.bfSize = bmp_file.bfOffBits + bmp_image.biSizeImage;
+                bitmap_file_write("test.bmp", &bmp_file, &bmp_image, (unsigned char *)argb1555);
+            }
+        }
+        else
+        {
+            if (strncmp("1555", argv[4], strlen(argv[4])) == 0)
+            {
+                int w, h = 0;
+                uint16_t *argb1555 = string_to_argb1555("default.ttf", argv[2], atoi(argv[3]), &w, &h);
+                bmp_image.biBitCount = 16;
+                bmp_image.biClrImportant = 0;
+                bmp_image.biClrUsed = 0;
+                bmp_image.biCompression = 0;
+                bmp_image.biHeight = h;
+                bmp_image.biWidth = w;
+                bmp_image.biPlanes = 1;
+                bmp_image.biSize = 40;
+                bmp_image.biSizeImage = w * h * 2;
+                bmp_image.biXPelsPerMeter = 0;
+                bmp_image.biYPelsPerMeter = 0;
 
-    return 0;
+                bmp_file.bfOffBits = 54;
+                bmp_file.bfReserved = 0;
+                bmp_file.bfSize = bmp_file.bfOffBits + bmp_image.biSizeImage;
+                memcpy(bmp_file.bfType, "BM", 2);
+                bitmap_file_write("test.bmp", &bmp_file, &bmp_image, (unsigned char *)argb1555);
+            }
+        }
+    }
+    else if (strncmp("fusion", argv[1], strlen(argv[1])) == 0)
+    {
+        bmp_buf = bitmap_file_read(argv[2], &bmp_file, &bmp_image);
+
+        bitmap_file_info_t src_file;
+        bitmap_image_info_t src_image;
+        unsigned char *src_buf = bitmap_file_read(argv[3], &src_file, &src_image);
+
+        bg_image_t bg_img;
+        bg_img.data = bmp_buf;
+        bg_img.data_len = bmp_image.biSizeImage;
+        bg_img.height = bmp_image.biHeight;
+        bg_img.width = bmp_image.biWidth;
+
+        source_image_t src_img;
+        src_img.data = src_buf;
+        src_img.data_len = src_image.biSizeImage;
+        src_img.height = src_image.biHeight;
+        src_img.width = src_image.biWidth;
+        unsigned char *ret_buf = rgb888_image_fusion_without_color_ex(bg_img, src_img, 10, 10, 0x000000, 2);
+        bitmap_file_write("test.bmp", &bmp_file, &bmp_image, ret_buf);
+    }
 }

@@ -1,5 +1,5 @@
-#ifndef __BMP_TRANS_H__
-#define __BMP_TRANS_H__
+#ifndef __BMP_COMMON_H__
+#define __BMP_COMMON_H__
 
 #ifdef __cplusplus
 extern "C"
@@ -10,7 +10,7 @@ extern "C"
 
 typedef struct
 {
-    char bfType[2];         // 标识，就是"BM"二字
+    char bfType[3];         // 标识，就是"BM"二字
     uint32_t bfSize;        // 整个BMP文件的大小
     uint32_t bfReserved;    // 保留字，没用
     uint32_t bfOffBits;     // 偏移数，即 位图文件头+位图信息头+调色板 的大小
@@ -31,11 +31,11 @@ typedef struct
     uint32_t biClrImportant;    // 重要的颜色数，0代表所有颜色都重要
 }bitmap_image_info_t;
 
+/* bitmap_file_read返回的buff需要free */
 uint8_t *bitmap_file_read(char *filename, bitmap_file_info_t *bitmap_file, bitmap_image_info_t *bitmap_image);
-uint16_t *rgb888_to_argb1555(uint8_t *in_buf, uint64_t in_len, uint32_t w, uint32_t h);
-uint8_t *rgb888_to_argb1111(uint8_t *in_buf, uint64_t in_len, uint32_t w, uint32_t h);
-uint16_t *string_to_argb1555(char *ttf_path, char *str, uint32_t font_size, uint32_t *w, uint32_t *h);
-int bitmap_file_write(char *filename, bitmap_file_info_t bitmap_file, bitmap_image_info_t bitmap_image, uint8_t *buf);
+void bitmap_print_head(bitmap_file_info_t *bitmap_file, bitmap_image_info_t *bitmap_image, uint8_t *buff);
+int bitmap_file_write(char *filename, bitmap_file_info_t *bitmap_file, bitmap_image_info_t *bitmap_image, uint8_t *buff);
+
 
 #ifdef __cplusplus
 }
