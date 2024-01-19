@@ -80,13 +80,13 @@ int main(int argc, char *argv[])
         bitmap_image_info_t src_image;
         unsigned char *src_buf = bitmap_file_read(argv[3], &src_file, &src_image);
 
-        bg_image_t bg_img;
+        rgb_target_img_t bg_img;
         bg_img.data = bmp_buf;
         bg_img.data_len = bmp_image.biSizeImage;
         bg_img.height = bmp_image.biHeight;
         bg_img.width = bmp_image.biWidth;
 
-        source_image_t src_img;
+        rgb_icon_t src_img;
         src_img.data = src_buf;
         src_img.data_len = src_image.biSizeImage;
         src_img.height = src_image.biHeight;

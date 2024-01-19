@@ -138,11 +138,11 @@ uint8_t *rgb888_to_argb1111(uint8_t *in_buf, uint64_t in_len, uint32_t w, uint32
 
             if (j % 2 == 0)
             {
-                argb1111_color = 0x88 | (R << 2) | (G << 1) | B; // 1000,1000 1代表透明度
+                argb1111_color = 0x88 | ((R << 6) | (G << 5) | (B << 4)); // 1000,1000 1代表透明度
             }
             else
             {
-                argb1111_color = argb1111_color | ((R << 6) | (G << 5) | (B << 4));
+                argb1111_color = argb1111_color | (R << 2) | (G << 1) | B;
                 // memcpy(out_buf + (h - 1 - i) * w / 2 + j / 2, &argb1111_color, sizeof(uint8_t));
                 memcpy(out_buf + i * w / 2 + j / 2, &argb1111_color, sizeof(uint8_t));
             }

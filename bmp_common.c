@@ -4,11 +4,15 @@
 
 #include "bmp_common.h"
 
+#define OUT_FILE "rgb888_img.c"
+
 void bitmap_print_head(bitmap_file_info_t *bitmap_file, bitmap_image_info_t *bitmap_image, uint8_t *buff)
 {
     int i, j = 0;
     uint8_t *p = NULL;
     int repair_byte = 0;    // 填充的位数
+    FILE *fp = NULL;
+    char write_buf[128] = {0};
 
     printf("标识=%s\n", bitmap_file->bfType);
     printf("文件大小=%u\n", bitmap_file->bfSize);
@@ -38,18 +42,34 @@ void bitmap_print_head(bitmap_file_info_t *bitmap_file, bitmap_image_info_t *bit
         p = buff + (bitmap_image->biWidth * 3 + repair_byte) * i;
         for (j = 0; j < bitmap_image->biWidth * 3; j += 3)
         {
-#if 0
             printf("%02x,", p[j]);
             printf("%02x,", p[j + 1]);
             printf("%02x,", p[j + 2]);
-#else
-            printf("0x%02x, ", p[j]);
-            printf("0x%02x, ", p[j + 1]);
-            printf("0x%02x, ", p[j + 2]);
-#endif
         }
         printf("\n");
     }
+
+    fp = fopen(OUT_FILE, "w");
+    if (fp == NULL)
+    {
+        printf("[%s]Open %s failed.\n", __func__, OUT_FILE);
+        return;
+    }
+
+    snprintf(write_buf, sizeof(write_buf), "const unsigned char rgb888_%ux%u_[] = {\n\t", bitmap_image->biWidth, bitmap_image->biHeight);
+    fwrite(write_buf, 1, strlen(write_buf), fp);
+    for (i = bitmap_image->biHeight - 1; i >= 0; i--)
+    {
+        p = buff + (bitmap_image->biWidth * 3 + repair_byte) * i;
+        for (j = 0; j < bitmap_image->biWidth * 3; j += 3)
+        {
+            snprintf(write_buf, sizeof(write_buf), "0x%02x, 0x%02x, 0x%02x, ", p[j], p[j + 1], p[j + 2]);
+            fwrite(write_buf, 1, strlen(write_buf), fp);
+        }
+        fwrite("\n\t", 1, strlen("\n\t"), fp);
+    }
+    fwrite("\n};\n\n", 1, strlen("\n};\n\n"), fp);
+    fclose(fp);
 }
 
 uint8_t *bitmap_file_read(char *filename, bitmap_file_info_t *bitmap_file, bitmap_image_info_t *bitmap_image)
