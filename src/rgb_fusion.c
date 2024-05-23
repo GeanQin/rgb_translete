@@ -69,6 +69,46 @@ unsigned char *rgb888_image_fusion_without_color(rgb_target_img_t bg_img, rgb_ic
     return bg_img.data;
 }
 
+unsigned char *rgb565_image_fusion_without_color(rgb_target_img_t bg_img, rgb_icon_t source_img, unsigned long x, unsigned long y, int color)
+{
+    int i = 0;
+    int j = 0;
+    unsigned char rgb565[2] = {0, 0};
+    unsigned char *bg_p = bg_img.data + (y * bg_img.width * 2) + (x * 2);
+
+    if (x + source_img.width >= bg_img.width || y + source_img.height >= bg_img.height)
+    {
+        return NULL;
+    }
+
+    rgb565[0] = (color >> 8) | 0x00;
+    rgb565[1] = color | 0x00;
+
+    for (i = 0; i < source_img.height; i++)
+    {
+        for (j = 0; j < source_img.width * 2; j += 2)
+        {
+            if (bg_p >= bg_img.data + bg_img.data_len - 2)
+            {
+                break;
+            }
+            if (source_img.data[i * source_img.width * 2 + j] == rgb565[0] &&
+                source_img.data[i * source_img.width * 2 + j + 1] == rgb565[1])
+            {
+                bg_p += 2;
+                continue;
+            }
+            else
+            {
+                memcpy(bg_p, source_img.data + i * source_img.width * 2 + j, 2);
+                bg_p += 2;
+            }
+        }
+        bg_p = bg_p + ((bg_img.width - source_img.width) * 2);
+    }
+    return bg_img.data;
+}
+
 unsigned char *rgb888_image_fusion_without_color_ex(rgb_target_img_t bg_img, rgb_icon_t source_img, unsigned long x, unsigned long y, int color, int amplify)
 {
     int i = 0;

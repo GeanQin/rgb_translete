@@ -6,7 +6,32 @@ extern "C"
 {
 #endif
 
-#include "rgb_common.h"
+typedef enum
+{
+    RGB888 = 0,
+    RGB565,
+    ARGB1111,
+    ARGB1555,
+}rgb_img_type_e;
+
+typedef struct
+{
+    char name[16];
+    const unsigned char *data;
+    unsigned long data_len;
+    rgb_img_type_e type;
+    unsigned int width;
+    unsigned int height;
+}rgb_icon_t;
+
+typedef struct
+{
+    unsigned char *data;
+    unsigned long data_len;
+    rgb_img_type_e type;
+    unsigned int width;
+    unsigned int height;
+}rgb_target_img_t;
 
 /*
  * rgb888_image_fusion：
@@ -31,6 +56,7 @@ unsigned char *rgb888_image_fusion(rgb_target_img_t bg_img, rgb_icon_t source_im
  *      color           底色，例子：0x000000（黑底）
  */
 unsigned char *rgb888_image_fusion_without_color(rgb_target_img_t bg_img, rgb_icon_t source_img, unsigned long x, unsigned long y, int color);
+unsigned char *rgb565_image_fusion_without_color(rgb_target_img_t bg_img, rgb_icon_t source_img, unsigned long x, unsigned long y, int color);
 /*
  * rgb888_image_fusion_without_color：
  * 叠加两张rgb888的图，去除上图底色，并且放大上图。
